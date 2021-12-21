@@ -14,32 +14,25 @@
 
 """This script is used to synthesize generated parts of this library."""
 
-import synthtool as s
-import synthtool.gcp as gcp
 import logging
+from pathlib import Path
+import subprocess
+
+import synthtool as s
+from synthtool.languages import php
+from synthtool import _tracked_paths
 
 logging.basicConfig(level=logging.DEBUG)
 
-gapic = gcp.GAPICBazel()
-common = gcp.CommonTemplates()
+src = Path(f"../{php.STAGING_DIR}/SecurityCenter").resolve()
+dest = Path().resolve()
 
-for version in ['V1', 'V1p1beta1']:
-    lower_version = version.lower()
-    library = gapic.php_library(
-        service='securitycenter',
-        version=lower_version,
-        bazel_target=f'//google/cloud/securitycenter/{lower_version}:google-cloud-securitycenter-{lower_version}-php',
-    )
+# Added so that we can pass copy_excludes in the owlbot_main() call
+_tracked_paths.add(src)
 
-    # copy all src
-    s.move(library / f'src/{version}')
+php.owlbot_main(src=src, dest=dest)
 
-    # copy proto files to src also
-    s.move(library / f'proto/src/Google/Cloud/SecurityCenter', f'src/')
-    s.move(library / f'tests/')
 
-    # copy GPBMetadata file to metadata
-    s.move(library / f'proto/src/GPBMetadata/Google/Cloud/Securitycenter', f'metadata/')
 
 # document and utilize apiEndpoint instead of serviceAddress
 s.replace(
@@ -64,24 +57,6 @@ s.replace(
     'src/V1/**/*Client.php',
     r'^(\s+\*\n)?\s+\*\s@experimental\n',
     '')
-
-# fix year
-s.replace(
-    'src/V1/**/*.php',
-    r'Copyright \d{4}',
-    r'Copyright 2019')
-s.replace(
-    'tests/*/V1/**/*Test.php',
-    r'Copyright \d{4}',
-    r'Copyright 2019')
-s.replace(
-    'src/V1p1beta1/**/*.php',
-    r'Copyright \d{4}',
-    r'Copyright 2020')
-s.replace(
-    'tests/*/V1p1beta1/**/*Test.php',
-    r'Copyright \d{4}',
-    r'Copyright 2020')
 
 # Use new namespace in the doc sample. See
 # https://github.com/googleapis/gapic-generator/issues/2141
